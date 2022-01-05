@@ -6,6 +6,7 @@ const data = require('./data');//récupère les données JSON du fichier data.js
 const { Toy, Category } = require('./models')
 
 const { Sequelize, where } = require('sequelize');
+const res = require('express/lib/response');
 // Option 3: Passing parameters separately (other dialects)
 const db = new Sequelize('santas_db', 'postgres', 'postgres', {
     host: 'localhost',
@@ -64,9 +65,6 @@ app.put('/categories/:id', async (req, res) => {
 app.delete('/category/:id', async (req, res) => {
     res.send(null);
 });
-
-
-
 //======================================================  JOUETS  ======================================================// 
 
 //lister tous les jouets
@@ -74,10 +72,8 @@ app.get('/toys', async (req, res) => {
     const all_toys = await Toy.findAll();
     res.send(all_toys);
 });
-
 //récupérer un jouet
 app.get('/toys/:id', async (req, res) => {
-
     let toy_byId = await Toy.findAll({
         where: {
             id: parseInt(req.params.id)
@@ -88,44 +84,104 @@ app.get('/toys/:id', async (req, res) => {
     else
         res.status(404).send('Erreur 404');
 });
-
 //ajouter un jouet
 app.post('/toys', async (req, res) => {
-    try {
-        let cat_id = await Category.findOne({
-            attributes: ['id']
-        }, {
-            where: { name: req.body.category }
+    async function create_new_toy() {
+        let cat;
+        if (req.body.category) {
+            cat = await Category.findOne({
+                where: {
+                    name: req.body.category
+                }
+            });
         }
-
-        );
-        console.log(cat_id);
-        let new_toy = await Toy.create({
-            name: req.body.name,
-            description: req.body.description,
-            price: req.body.price,
-            category_id: cat_id
+        else {
+            cat = { id: 1 }
+        }
+        const new_toy = await Toy.findOrCreate({
+            where: {
+                name: req.body.name,
+                description: req.body.description,
+                price: req.body.price,
+                category_id: cat.id
+            }
         });
-        res.json(new_toy);
-    } catch (e) {
-        console.log(e)
+        return new_toy;
     }
+    const added_toy = await create_new_toy();
+    res.send(added_toy)
 
-});
-
+})
 //modifier un jouet
-app.put('/toy/:id', (req, res) => {
-    res.send(null);
-});
+app.put('/toys/:id', async (req, res) => {
+    async function modifyToy() {
+        const last_toy = await Toy.update(
+            {
+                name: req.body.name,
+                description: req.body.description,
+                price: req.body.price
+            },
+            {
+                where: {
+                    id: req.params.id
+                }
+            });
+        return last_toy
+    }
+    const newToy = await modifyToy();
+    res.send(newToy);
+})
 
 //supprimer un jouet
-app.delete('/toy/:id', (req, res) => {
-    res.send(null);
-});
+app.delete('/toys/:id', async (req, res) => {
+    let deleted_toy;
+    let toy_byId = await Toy.findAll({
+        where: {
+            id: parseInt(req.params.id)
+        }
+    });
+    if (toy_byId.length !== 0) {
+        try {
+            deleted_toy = await Toy.destroy({
+                where: {
+                    id: parseInt(req.params.id)
+                }
+            });
+        }
+        catch (error) {
+            res.status(422)
+            console.error(error);
+        }
+    }
+    else {
+        res.status(404).send('toy not foundur 404');
+    }
+
+})
 
 //récupérer tous les jouets d'une catégorie
-app.get('/category/:name/toys', (req, res) => {
-    res.send(null);
+app.get('/categories/:name/toys', async (req, res) => {
+    const myCategory = req.params.name
+    //je verifie si le nom de la category est donné dans la requette
+    let trueCategory = []
+    if (req.params.name) {
+        trueCategory = await Category.findOne({
+            where: {
+                name: myCategory
+            }
+        });
+        if (trueCategory) {
+            let toysFromCategory = await Toy.findAll(
+                {
+                    where: {
+                        category_id: trueCategory.id
+                    }
+                }
+            )
+            res.send(toysFromCategory)
+        }
+        else res.sendStatus(404)
+    } else res.sendStatus(404)
 });
 
 //route pour les autres chemins
