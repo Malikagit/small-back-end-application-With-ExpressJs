@@ -386,25 +386,28 @@ app.post('/wishes', async (req, res) => {
             }
         })
         if (toyByName) {
-            const newWishe = await Wish.findOrCreate({
+            const newWish = await Wish.findOrCreate({
                 where: {
                     nameChild: req.body.nameChild,
                     toy_id: toyByName.id,
                 }
             })
-            res.status(200)
-            res.send(`success to creat the  wish`)
-            res.send(newWishe);
-
-            if (newWishe) {
+            res.json(newWish)
+            if (newWish != undefined) {
+                const aElf = random_item(await Elf.findAll())
+                console.log(aElf);
+                console.log(aElf.id);
                 const new_shedule = await Schedule.findOrCreate({
                     where: {
-                        // elf_id: random_item(getElves())
-                        wishe_id: newWishe.id,
+                        //elf_id: aElf.id,
+                        elf_id: 5,
+                        wishe_id: parseInt(newWish[0].id),
                         done_at: Date.now()
                     }
                 })
-                res.json(newWishe);
+                res.json(newWish);
+                res.status(200)
+                res.send(`success to creat the  wish for${req.body.nameChild} fo a ${req.body.toy}and new shedule for ${aElf.first_name} successfly creted`)
             }
             else (console.log("the schedul not create"))
         }
@@ -462,7 +465,7 @@ app.delete('/wishes/:id', async (req, res) => {
 //lister toutes les Schedule /schedules?login=Rudolf&password=password_as_plain_text
 app.get('/schedules/:login/:password', async (req, res) => {
     try {
-        const myElf = await Elf.findOne({
+        const myElf = await Elf.findAll({
             where: {
                 login: req.params.login,
                 password: md5(req.params.password)
@@ -473,12 +476,12 @@ app.get('/schedules/:login/:password', async (req, res) => {
             const schedulesByElf = await Schedule.findAll(
                 {
                     where: {
-                        elf_id: myElf.id
+                        elf_id: myElf[0].id
                     }
                 }
             );
             res.status(200)
-            res.send.json(schedulesByElf);
+            res.json(schedulesByElf);
         }
         else (`Now elf with this profile ${req.body.login}`)
     }
