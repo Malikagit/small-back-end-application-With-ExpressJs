@@ -352,9 +352,13 @@ app.get('/wishes/:id', async (req, res) => {
                 id: id_wishe
             }
         });
-        res.status(200)
-        res.send(wisheById);
-    } catch (error) {
+        if (wisheById != null) {
+            res.status(200)
+            res.send(wisheById);
+        }
+        else res.status(404).json(`the wishe with id ${req.params.id} doesn' exist`)
+    }
+    catch (error) {
         console.error(error);
     }
 });
@@ -367,16 +371,20 @@ app.post('/wishes', async (req, res) => {
                 name: req.body.toy,
             }
         })
-        console.log(toyByName);
-        const newWishe = await Wish.findOrCreate({
-            where: {
-                nameChild: req.body.nameChild,
-                toy_id: toyByName.id,
-            }
-        })
-        res.status(200)
-        res.send(`success to creat the  wish  `)
-        res.send(newWishe);
+        if (toyByName) {
+            const newWishe = await Wish.findOrCreate({
+                where: {
+                    nameChild: req.body.nameChild,
+                    toy_id: toyByName.id,
+                }
+            })
+            res.status(200)
+            res.send(`success to creat the  wish`)
+            res.send(newWishe);
+        }
+        else {
+            res.status(404).json(`the toy ${req.body.toy} dosn't exist`)
+        }
     }
     catch (error) {
         console.log(error);
@@ -398,7 +406,7 @@ app.put('/wishes/:id', async (req, res) => {
                     name: req.body.toy,
                 }
             })
-            let elv = await Wish.update(
+            let newWishe = await Wish.update(
                 {
                     nameChild: req.body.nameChild,
                     toy_id: toyByName.id
@@ -408,12 +416,11 @@ app.put('/wishes/:id', async (req, res) => {
                         id: req.params.id
                     }
                 });
-            console.log(elv);
-            res.status(200);
-            // res.send(`the toy with name ${elveToModify.name} well modified `)
-            // res.json(elveToModify);
+
+            res.status(200).json(`the wish  for  ${wishToModify.nameChild} well modified `)
+            res.json(newWishe[2]);
         }
-        else res.status(404);
+        else res.status(404).json(`the wishe with id ${req.params.id} doesn't exist`)
     }
     catch (error) {
         console.log(error);
