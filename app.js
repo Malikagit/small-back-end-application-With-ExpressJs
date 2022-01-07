@@ -14,6 +14,21 @@ const db = new Sequelize('santas_db', 'postgres', 'postgres', {
     dialect: 'postgres'
 });
 const md5 = require('md5');
+//const Faker = require('faker');
+//
+//methode generate a elf randomly to create a schedule
+function random_item(items) {
+
+    return items[Math.floor(Math.random() * items.length)];
+
+}
+//get all elf 
+const myelves = async function getElves() {
+    const allElves = await Elf.findAll();
+    return allElves;
+
+}
+
 //page d'accueil
 app.get('/', (req, res) => {
 
@@ -342,7 +357,6 @@ app.get('/wishes', async (req, res) => {
     const allWishes = await Wish.findAll();
     res.send(allWishes);
 });
-
 //récupérer un whish
 app.get('/wishes/:id', async (req, res) => {
     try {
@@ -381,6 +395,18 @@ app.post('/wishes', async (req, res) => {
             res.status(200)
             res.send(`success to creat the  wish`)
             res.send(newWishe);
+
+            if (newWishe) {
+                const new_shedule = await Schedule.findOrCreate({
+                    where: {
+                        // elf_id: random_item(getElves())
+                        wishe_id: newWishe.id,
+                        done_at: Date.now()
+                    }
+                })
+                res.json(newWishe);
+            }
+            else (console.log("the schedul not create"))
         }
         else {
             res.status(404).json(`the toy ${req.body.toy} dosn't exist`)
@@ -399,7 +425,6 @@ app.put('/wishes/:id', async (req, res) => {
             {
                 where: { id: req.params.id }
             });
-        console.log(wishToModify);
         if (wishToModify) {
             const toyByName = await Toy.findOne({
                 where: {
@@ -427,8 +452,126 @@ app.put('/wishes/:id', async (req, res) => {
         res.sendStatus(422);
     }
 });
-//supprimer un elve
-app.delete('/elves/:id', async (req, res) => {
+//supprimer un wish
+app.delete('/wishes/:id', async (req, res) => {
+    res.send(null)
+});
+
+//======================================================  Schedule  ======================================================// 
+
+//lister toutes les Schedule /schedules?login=Rudolf&password=password_as_plain_text
+app.get('/schedules/:login/:password', async (req, res) => {
+    try {
+        const myElf = await Elf.findOne({
+            where: {
+                login: req.params.login,
+                password: md5(req.params.password)
+            }
+        })
+        console.log(myElf);
+        if (myElf != null) {
+            const schedulesByElf = await Schedule.findAll(
+                {
+                    where: {
+                        elf_id: myElf.id
+                    }
+                }
+            );
+            res.status(200)
+            res.send.json(schedulesByElf);
+        }
+        else (`Now elf with this profile ${req.body.login}`)
+    }
+    catch (error) {
+        console.log(error);
+        res.send(null)
+    }
+})
+//récupérer un Schedule         
+// app.get('/schedules/:', async (req, res) => {
+//     try {
+//         let id_ = req.params.id
+//         const scheduleById = await Schedule.findOne({
+//             where: {
+//                 id: id_wishe
+//             }
+//         });
+//         if (wisheById != null) {
+//             res.status(200)
+//             res.send(wisheById);
+//         }
+//         else res.status(404).json(`the wishe with id ${req.params.id} doesn' exist`)
+//     }
+//     catch (error) {
+//         console.error(error);
+//     }
+// });
+
+//ajouter Schedule
+app.post('/schedules', async (req, res) => {
+    try {
+        const toyByName = await Toy.findOne({
+            where: {
+                name: req.body.toy,
+            }
+        })
+        if (toyByName) {
+            const newWishe = await Wish.findOrCreate({
+                where: {
+                    nameChild: req.body.nameChild,
+                    toy_id: toyByName.id,
+                }
+            })
+            res.status(200)
+            res.send(`success to creat the  wish`)
+            res.send(newWishe);
+        }
+        else {
+            res.status(404).json(`the toy ${req.body.toy} dosn't exist`)
+        }
+    }
+    catch (error) {
+        console.log(error);
+        res.status(422)
+    }
+});
+
+//modifier un Schedule
+app.put('/schedules/:id', async (req, res) => {
+    try {
+        const wishToModify = await Wish.findOne(
+            {
+                where: { id: req.params.id }
+            });
+        if (wishToModify) {
+            const toyByName = await Toy.findOne({
+                where: {
+                    name: req.body.toy,
+                }
+            })
+            let newWishe = await Wish.update(
+                {
+                    nameChild: req.body.nameChild,
+                    toy_id: toyByName.id
+                },
+                {
+                    where: {
+                        id: req.params.id
+                    }
+                });
+
+            res.status(200).json(`the Schedule  for  ${ScheduleToModify.nameChild} well modified `)
+            res.json(newSchedule[2]);
+        }
+        else res.status(404).json(`there's no Schedule for ${req.body.elf} doesn't exist`)
+    }
+    catch (error) {
+        console.log(error);
+        res.sendStatus(422);
+    }
+});
+//supprimer un Schedule
+app.delete('/scheduls/:id', async (req, res) => {
     res.send(null)
 });
 //route pour les autres chemins
