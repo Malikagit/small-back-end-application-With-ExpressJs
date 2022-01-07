@@ -257,27 +257,27 @@ app.get('/elves', async (req, res) => {
     res.send(all_Elves);
 });
 
-//récupérer un elve
+//récupérer un elf
 app.get('/elves/:id', async (req, res) => {
     try {
-        let id_elve = req.params.id
-        const eleveById = await Elf.findOne({
+        let id_elf = req.params.id
+        const elfById = await Elf.findOne({
             where: {
-                id: id_elve
+                id: id_elf
             }
         });
         res.status(200)
-        res.send(eleveById);
+        res.send(elfById);
     } catch (error) {
         console.error(error);
         res.status(404)
     }
 });
 
-//ajouter un elve
+//ajouter un elf
 app.post('/elves', async (req, res) => {
     try {
-        const newElve = await Elf.findOrCreate({
+        const newElf = await Elf.findOrCreate({
             where: {
                 first_name: req.body.first_name,
                 last_name: req.body.last_name,
@@ -286,8 +286,8 @@ app.post('/elves', async (req, res) => {
             }
         })
         res.status(200)
-        res.send(`success to creat the  elve  `)
-        res.send(newElve);
+        res.send(`success to creat the  elf  `)
+        res.send(newElf);
     }
     catch (error) {
         console.log(error);
@@ -295,15 +295,16 @@ app.post('/elves', async (req, res) => {
     }
 });
 
-//modifier un elve
+//modifier un elf
 app.put('/elves/:id', async (req, res) => {
     try {
         const elfToModify = await Elf.findOne(
             {
                 where: { id: req.params.id }
             });
-        console.log(elfToModify);
-        if (elfToModify !== null) {
+
+        if (elfToModify) {
+            // console.log(elfToModify.id);
             let elv = await Elf.update(
                 {
                     first_name: req.body.first_name,
@@ -336,13 +337,13 @@ app.delete('/elves/:id', async (req, res) => {
 });
 //======================================================  Wishe  ======================================================// 
 
-//lister toutes les elves
+//lister toutes les Wishes
 app.get('/wishes', async (req, res) => {
     const allWishes = await Wish.findAll();
     res.send(allWishes);
 });
 
-//récupérer un elve
+//récupérer un whish
 app.get('/wishes/:id', async (req, res) => {
     try {
         let id_wishe = req.params.id
@@ -358,7 +359,7 @@ app.get('/wishes/:id', async (req, res) => {
     }
 });
 
-//ajouter wishe
+//ajouter wish
 app.post('/wishes', async (req, res) => {
     try {
         const toyByName = await Toy.findOne({
@@ -367,15 +368,15 @@ app.post('/wishes', async (req, res) => {
             }
         })
         console.log(toyByName);
-        const newWishe = await Wishe.findOrCreate({
+        const newWishe = await Wish.findOrCreate({
             where: {
+                nameChild: req.body.nameChild,
                 toy_id: toyByName.id,
-                nameChild: req.body.nameChild
             }
         })
         res.status(200)
-        res.send(`success to creat the  elve  `)
-        res.send(newElve);
+        res.send(`success to creat the  wish  `)
+        res.send(newWishe);
     }
     catch (error) {
         console.log(error);
@@ -386,34 +387,39 @@ app.post('/wishes', async (req, res) => {
 //modifier un wishe
 app.put('/wishes/:id', async (req, res) => {
     try {
-        const wisheToModify = await Elve.findOne(
+        const wishToModify = await Wish.findOne(
             {
                 where: { id: req.params.id }
             });
-        console.log(elveToModify);
-        let elv = await Elve.update(
-            {
-
-                first_name: req.body.first_name,
-                last_name: req.body.last_name,
-                login: req.body.login,
-                password: md5(req.body.password)
-            },
-            {
+        console.log(wishToModify);
+        if (wishToModify) {
+            const toyByName = await Toy.findOne({
                 where: {
-                    id: req.params.id
+                    name: req.body.toy,
                 }
-            });
-        console.log(elv);
-        res.status(200);
-        // res.send(`the toy with name ${elveToModify.name} well modified `)
-        // res.json(elveToModify);
+            })
+            let elv = await Wish.update(
+                {
+                    nameChild: req.body.nameChild,
+                    toy_id: toyByName.id
+                },
+                {
+                    where: {
+                        id: req.params.id
+                    }
+                });
+            console.log(elv);
+            res.status(200);
+            // res.send(`the toy with name ${elveToModify.name} well modified `)
+            // res.json(elveToModify);
+        }
+        else res.status(404);
     }
     catch (error) {
         console.log(error);
         res.sendStatus(422);
     }
-})
+});
 //supprimer un elve
 app.delete('/elves/:id', async (req, res) => {
     res.send(null)
