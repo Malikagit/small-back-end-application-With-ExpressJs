@@ -3,22 +3,22 @@ const app = express();//déclaration qui spécifie que cette application est bie
 const port = 3000;
 app.use(express.urlencoded({ extended: true }));//paramètre qui permet de gérer les paramètres des requêtes POST & PUT
 const data = require('./data');//récupère les données JSON du fichier data.js
-const { Toy, Category } = require('./models')
+const { Toy, Category, Wish, Schedule, Elf } = require('./models')
 
 const { Sequelize, where } = require('sequelize');
 const res = require('express/lib/response');
+const { send } = require('express/lib/response');
 // Option 3: Passing parameters separately (other dialects)
 const db = new Sequelize('santas_db', 'postgres', 'postgres', {
     host: 'localhost',
     dialect: 'postgres'
 });
-
+const md5 = require('md5');
 //page d'accueil
 app.get('/', (req, res) => {
 
     res.send('page d\'accueil');
 });
-
 //======================================================  CATEGORIES  ======================================================// 
 
 //lister toutes les catégories
@@ -41,29 +41,84 @@ app.get('/categories/:id', async (req, res) => {
 
 //ajouter une catégorie
 app.post('/categories', async (req, res) => {
-    const created_category = await Category.create({
-        name: `${req.body.name}`
-    })
-    res.send(created_category);
-
+    try {
+        const created_category = await Category.findOrCreate({
+            where: { name: req.body.name }
+        })
+        res.status(200)
+        res.send(`success to creat the  category  `)
+        res.send(created_category);
+    }
+    catch (error) {
+        console.log(error);
+        res.status(422)
+    }
 });
 
 //modifier une catégorie
 app.put('/categories/:id', async (req, res) => {
-    const modified_category = await Category.update(
-        { name: req.body.name },
-        {
-            where: {
-                id: req.params.id
-            }
-        })
-        ;
-    res.json(modified_category);
-});
+    try {
+        const CategoryToModify = await Category.findOne(
+            { where: { id: req.params.id } });
+        const modified_category = await Category.update(
+            {
+                name: req.body.name
+
+            },
+            {
+                where: {
+                    id: req.params.id
+                }
+            });
+        res.status(200);
+        res.send(`the toy with name ${CategoryToModify.name} well modified `)
+        res.json(CategoryToModify);
+    }
+    catch (error) {
+        console.log(error);
+        res.sendStatus(422);
+    }
+})
 
 //supprimer une catégorie
-app.delete('/category/:id', async (req, res) => {
-    res.send(null);
+app.delete('/categories/:id', async (req, res) => {
+
+    let categoryToDelete = await Category.findOne({
+        where: {
+            id: parseInt(req.params.id)
+        }
+    });
+    if (categoryToDelete !== null) {
+        try {
+
+            await Toy.destroy({
+                where: {
+                    category_id: req.params.id
+                }
+            }
+            )
+            await Category.destroy(
+                {
+                    truncate: { cascade: true }
+                },
+                {
+                    where: {
+                        id: parseInt(req.params.id)
+                    }
+                });
+            send.status(200),
+                res.send(`the category with name ${categoryToDelete.name} well deleted `)
+        }
+        catch (error) {
+            res.sendStatus(422)
+            res.json(categoryToDelete)
+            console.error(error);
+        }
+    }
+    else {
+        res.status(404).send('category doesn\'t exsist ');
+    }
+
 });
 //======================================================  JOUETS  ======================================================// 
 
@@ -86,9 +141,9 @@ app.get('/toys/:id', async (req, res) => {
 });
 //ajouter un jouet
 app.post('/toys', async (req, res) => {
-    async function create_new_toy() {
+    try {
         let cat;
-        if (req.body.category) {
+        if (req.body.category !== undefined) {
             cat = await Category.findOne({
                 where: {
                     name: req.body.category
@@ -96,7 +151,7 @@ app.post('/toys', async (req, res) => {
             });
         }
         else {
-            cat = { id: 1 }
+            cat = { id: null }
         }
         const new_toy = await Toy.findOrCreate({
             where: {
@@ -106,16 +161,21 @@ app.post('/toys', async (req, res) => {
                 category_id: cat.id
             }
         });
-        return new_toy;
+        res.json(new_toy)
+        res.send(200)
+    } catch (error) {
+        console.log(error);
+        res.send(422)
+        res.send('name category non fourni')
     }
-    const added_toy = await create_new_toy();
-    res.send(added_toy)
-
 })
-//modifier un jouet
+//modifier un jouetI
 app.put('/toys/:id', async (req, res) => {
-    async function modifyToy() {
-        const last_toy = await Toy.update(
+    try {
+        const ToyToUpdate = await Toy.findOne({
+            where: { id: req.params.id }
+        })
+        await Toy.update(
             {
                 name: req.body.name,
                 description: req.body.description,
@@ -126,35 +186,41 @@ app.put('/toys/:id', async (req, res) => {
                     id: req.params.id
                 }
             });
-        return last_toy
+
+        res.status(200);
+        res.send(`the toy with name ${ToyToUpdate.name} well modified `)
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(422);
     }
-    const newToy = await modifyToy();
-    res.send(newToy);
 })
 
 //supprimer un jouet
 app.delete('/toys/:id', async (req, res) => {
-    let deleted_toy;
-    let toy_byId = await Toy.findAll({
+
+    let toyToDelete = await Toy.findOne({
         where: {
             id: parseInt(req.params.id)
         }
     });
-    if (toy_byId.length !== 0) {
+    if (toyToDelete !== null) {
         try {
-            deleted_toy = await Toy.destroy({
+            await Toy.destroy({
                 where: {
                     id: parseInt(req.params.id)
                 }
             });
+            res.status(200)
+            res.send(`the category with name ${toyToDelete.name} well deleted `)
+
         }
         catch (error) {
-            res.status(422)
+            res.sendStatus(422)
             console.error(error);
         }
     }
     else {
-        res.status(404).send('toy not foundur 404');
+        res.status(404).send('toy doesn\'t exsist ');
     }
 
 })
@@ -183,7 +249,175 @@ app.get('/categories/:name/toys', async (req, res) => {
         else res.sendStatus(404)
     } else res.sendStatus(404)
 });
+//======================================================  Elves  ======================================================// 
 
+//lister toutes les elves
+app.get('/elves', async (req, res) => {
+    const all_Elves = await Elf.findAll();
+    res.send(all_Elves);
+});
+
+//récupérer un elve
+app.get('/elves/:id', async (req, res) => {
+    try {
+        let id_elve = req.params.id
+        const eleveById = await Elf.findOne({
+            where: {
+                id: id_elve
+            }
+        });
+        res.status(200)
+        res.send(eleveById);
+    } catch (error) {
+        console.error(error);
+        res.status(404)
+    }
+});
+
+//ajouter un elve
+app.post('/elves', async (req, res) => {
+    try {
+        const newElve = await Elf.findOrCreate({
+            where: {
+                first_name: req.body.first_name,
+                last_name: req.body.last_name,
+                login: req.body.login,
+                password: md5(req.body.password)
+            }
+        })
+        res.status(200)
+        res.send(`success to creat the  elve  `)
+        res.send(newElve);
+    }
+    catch (error) {
+        console.log(error);
+        res.status(422)
+    }
+});
+
+//modifier un elve
+app.put('/elves/:id', async (req, res) => {
+    try {
+        const elfToModify = await Elf.findOne(
+            {
+                where: { id: req.params.id }
+            });
+        console.log(elfToModify);
+        if (elfToModify !== null) {
+            let elv = await Elf.update(
+                {
+                    first_name: req.body.first_name,
+                    last_name: req.body.last_name,
+                    login: req.body.login,
+                    password: md5(req.body.password)
+                },
+                {
+                    where: {
+                        id: req.params.id
+                    }
+                })
+
+            res.status(200);
+            res.send(`the toy with name ${elfToModify.first_name} well modified `)
+            res.json(elfToModify);
+        }
+        else {
+            res.send('the Elf doesn\'t exist')
+        }
+    }
+    catch (error) {
+        console.log(error);
+        res.sendStatus(422);
+    }
+})
+//supprimer un Elf
+app.delete('/elves/:id', async (req, res) => {
+    res.send(null)
+});
+//======================================================  Wishe  ======================================================// 
+
+//lister toutes les elves
+app.get('/wishes', async (req, res) => {
+    const allWishes = await Wish.findAll();
+    res.send(allWishes);
+});
+
+//récupérer un elve
+app.get('/wishes/:id', async (req, res) => {
+    try {
+        let id_wishe = req.params.id
+        const wisheById = await Wish.findOne({
+            where: {
+                id: id_wishe
+            }
+        });
+        res.status(200)
+        res.send(wisheById);
+    } catch (error) {
+        console.error(error);
+    }
+});
+
+//ajouter wishe
+app.post('/wishes', async (req, res) => {
+    try {
+        const toyByName = await Toy.findOne({
+            where: {
+                name: req.body.toy,
+            }
+        })
+        console.log(toyByName);
+        const newWishe = await Wishe.findOrCreate({
+            where: {
+                toy_id: toyByName.id,
+                nameChild: req.body.nameChild
+            }
+        })
+        res.status(200)
+        res.send(`success to creat the  elve  `)
+        res.send(newElve);
+    }
+    catch (error) {
+        console.log(error);
+        res.status(422)
+    }
+});
+
+//modifier un wishe
+app.put('/wishes/:id', async (req, res) => {
+    try {
+        const wisheToModify = await Elve.findOne(
+            {
+                where: { id: req.params.id }
+            });
+        console.log(elveToModify);
+        let elv = await Elve.update(
+            {
+
+                first_name: req.body.first_name,
+                last_name: req.body.last_name,
+                login: req.body.login,
+                password: md5(req.body.password)
+            },
+            {
+                where: {
+                    id: req.params.id
+                }
+            });
+        console.log(elv);
+        res.status(200);
+        // res.send(`the toy with name ${elveToModify.name} well modified `)
+        // res.json(elveToModify);
+    }
+    catch (error) {
+        console.log(error);
+        res.sendStatus(422);
+    }
+})
+//supprimer un elve
+app.delete('/elves/:id', async (req, res) => {
+    res.send(null)
+});
 //route pour les autres chemins
 app.route('/*').delete((req, res) => {
     res.status(404).send("<h1>Error 404</h1><br/>You shouldn't be here");
