@@ -19,7 +19,7 @@ async function dump_stuff() {
         let elf = my_elves[i];
         let a_elf = await Elf.build(elf);
         await a_elf.save();
-        console.log('Elve', a_elf.first_name, ' ', alf.last_name 'was saved successfully.');
+        console.log('Elf', a_elf.first_name, ' ', a_elf.last_name, 'was saved successfully.');
     }
     for (let i = 0; i < my_wishes.length; i++) {
         let wish = my_wishes[i];

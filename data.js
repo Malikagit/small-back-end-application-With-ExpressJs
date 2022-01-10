@@ -1,3 +1,5 @@
+const md5 = require("md5")
+
 module.exports.toys = [
     {
         "name": "Playstation 4",
@@ -28,6 +30,12 @@ module.exports.toys = [
         "description": "Board game for smart children",
         "price": 25,
         "category_id": 1
+    },
+    {
+        "name": "montre kidizoom",
+        "description": "smartWatch high tech",
+        "price": 30,
+        "category_id": 6
     }
 ]
 
@@ -40,6 +48,9 @@ module.exports.categories = [
     },
     {
         "name": "Outdoor"
+    },
+    {
+        "name": "High Tech"
     }
 ]
 module.exports.elves = [
@@ -47,22 +58,22 @@ module.exports.elves = [
 
         "first_name": "Lmantiri",
         "last_name": "malika",
-        "login": "malikamalika",
-        "password": "mypass"
+        "login": "malika",
+        "password": md5("mypass")
     },
     {
 
         "first_name": "jack",
         "last_name": "tristan",
         "login": "tristanjak",
-        "password": "mypass1"
+        "password": md5("mypass1")
     },
     {
 
         "first_name": "curie",
         "last_name": "merry",
         "login": "marieCurie",
-        "password": "mypass2"
+        "password": md5("mypass2")
     }]
 module.exports.wishes = [
     {

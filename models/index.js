@@ -98,6 +98,8 @@ const Schedule = db.define('Schedule',
         },
         done_at: {
             type: Sequelize.DATE
+            , default: null
+
         }
 
     })

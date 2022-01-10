@@ -4,6 +4,7 @@ const port = 3000;
 app.use(express.urlencoded({ extended: true }));//paramètre qui permet de gérer les paramètres des requêtes POST & PUT
 const data = require('./data');//récupère les données JSON du fichier data.js
 const { Toy, Category, Wish, Schedule, Elf } = require('./models')
+const md5 = require("md5")
 
 const { Sequelize, where } = require('sequelize');
 const res = require('express/lib/response');
@@ -13,7 +14,7 @@ const db = new Sequelize('santas_db', 'postgres', 'postgres', {
     host: 'localhost',
     dialect: 'postgres'
 });
-const md5 = require('md5');
+
 //const Faker = require('faker');
 //
 //methode generate a elf randomly to create a schedule
@@ -392,24 +393,22 @@ app.post('/wishes', async (req, res) => {
                     toy_id: toyByName.id,
                 }
             })
-            res.json(newWish)
             if (newWish != undefined) {
                 const aElf = random_item(await Elf.findAll())
-                console.log(aElf);
-                console.log(aElf.id);
                 const new_shedule = await Schedule.findOrCreate({
                     where: {
-                        //elf_id: aElf.id,
-                        elf_id: 5,
+                        elf_id: aElf.id,
                         wishe_id: parseInt(newWish[0].id),
                         done_at: Date.now()
                     }
                 })
-                res.json(newWish);
                 res.status(200)
-                res.send(`success to creat the  wish for${req.body.nameChild} fo a ${req.body.toy}and new shedule for ${aElf.first_name} successfly creted`)
+                res.send(`un wish dont l'id ${newWish[0].id} serai créer pr le toy ${toyByName.name} pour ${req.body.nameChild} `)
+
+                // res.send(`success to creat the  wish for${ req.body.nameChild } fo a ${ req.body.toy }
+                // and new shedule for ${aElf.first_name} successfly created`)
             }
-            else (console.log("the schedul not create"))
+            else (console.log("echec to create the schedul"))
         }
         else {
             res.status(404).json(`the toy ${req.body.toy} dosn't exist`)
@@ -472,7 +471,7 @@ app.get('/schedules/:login/:password', async (req, res) => {
             }
         })
         console.log(myElf);
-        if (myElf != null) {
+        if (myElf.length != 0) {
             const schedulesByElf = await Schedule.findAll(
                 {
                     where: {
@@ -483,32 +482,32 @@ app.get('/schedules/:login/:password', async (req, res) => {
             res.status(200)
             res.json(schedulesByElf);
         }
-        else (`Now elf with this profile ${req.body.login}`)
+        else res.send(`Now elf with this profile ${req.params.login} or wrong password`)
     }
     catch (error) {
         console.log(error);
         res.send(null)
     }
 })
-//récupérer un Schedule         
-// app.get('/schedules/:', async (req, res) => {
-//     try {
-//         let id_ = req.params.id
-//         const scheduleById = await Schedule.findOne({
-//             where: {
-//                 id: id_wishe
-//             }
-//         });
-//         if (wisheById != null) {
-//             res.status(200)
-//             res.send(wisheById);
-//         }
-//         else res.status(404).json(`the wishe with id ${req.params.id} doesn' exist`)
-//     }
-//     catch (error) {
-//         console.error(error);
-//     }
-// });
+//récupérer un Schedule
+app.get('/schedules/:', async (req, res) => {
+    try {
+        let id_ = req.params.id
+        const scheduleById = await Schedule.findOne({
+            where: {
+                id: id_wishe
+            }
+        });
+        if (wisheById != null) {
+            res.status(200)
+            res.send(wisheById);
+        }
+        else res.status(404).json(`the wishe with id ${req.params.id} doesn' exist`)
+    }
+    catch (error) {
+        console.error(error);
+    }
+});
 
 //ajouter Schedule
 app.post('/schedules', async (req, res) => {
